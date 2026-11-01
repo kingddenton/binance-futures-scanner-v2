@@ -104,35 +104,86 @@ progress {width:100%;height:10px;accent-color:var(--gold)}
 }
 .stat small {display:block;color:var(--muted);font-size:13px}
 .stat strong {font-size:20px}
-.tabs {
-  display:flex;
-  gap:7px;
-  margin:14px 0;
-  flex-wrap:wrap;
-}
-.tab {
-  background:#202731;
-  color:var(--text);
-  border:1px solid var(--line);
-  padding:12px 17px;
-  font-size:16px;
-}
-.tab.active {
-  background:var(--gold);
-  color:#111;
-}
-.tabcontent {display:none}
-.tabcontent.active {display:block}
-.columns {
+
+/* Results layout */
+.columns,.results-grid {
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  align-items:start;
+}
+
+/* Collapsible filters */
+.filters-panel {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:9px;
+  margin:10px 0 14px;
+  overflow:hidden;
+}
+.filters-panel > summary {
+  cursor:pointer;
+  list-style:none;
+  padding:15px 16px;
+  color:var(--gold);
+  font-size:17px;
+  font-weight:bold;
+  user-select:none;
+}
+.filters-panel > summary::-webkit-details-marker {display:none}
+.filters-panel > summary::after {
+  content:"+";
+  float:right;
+  font-size:22px;
+  line-height:18px;
+}
+.filters-panel[open] > summary::after {content:"−"}
+.filters-content {padding:0 12px 8px}
+.filters-content .panel {margin:10px 0}
+
+/* Bullish and bearish colours */
+.bull.signal {
+  background:#082719;
+  border-color:#087c49;
+}
+.bear.signal {
+  background:#2b0c15;
+  border-color:#9b2439;
+}
+.crossbull.signal {
+  background:#082719;
+  border-color:#087c49;
+}
+.crossbear.signal {
+  background:#2b0c15;
+  border-color:#9b2439;
 }
 .bull h2,.bulltxt {color:var(--green)}
 .bear h2,.beartxt {color:var(--red)}
 .crossbull {color:var(--green)}
 .crossbear {color:var(--red)}
-.tablewrap {overflow:auto;max-height:650px}
+
+.bull th,.bull td,
+.crossbull th,.crossbull td {
+  border-bottom-color:#155b3a;
+}
+.bear th,.bear td,
+.crossbear th,.crossbear td {
+  border-bottom-color:#6d1c2b;
+}
+.bull tbody tr:nth-child(odd),
+.crossbull tbody tr:nth-child(odd) {
+  background:#0b351f;
+}
+.bear tbody tr:nth-child(odd),
+.crossbear tbody tr:nth-child(odd) {
+  background:#3a101b;
+}
+
+.tablewrap {
+  overflow:auto;
+  max-height:650px;
+}
 table {
   border-collapse:collapse;
   width:100%;
@@ -154,6 +205,10 @@ th {
 }
 td b {font-size:18px}
 .signal {min-width:0}
+.signal table {min-width:0}
+.signal th:last-child,.signal td:last-child {
+  text-align:right;
+}
 .result-note {font-size:14px;color:var(--muted)}
 .oi-options {
   display:grid;
@@ -162,8 +217,11 @@ td b {font-size:18px}
   margin-top:10px;
 }
 .hidden {display:none!important}
+
 @media(max-width:850px) {
-  .columns {grid-template-columns:1fr}
+  .columns,.results-grid {
+    grid-template-columns:1fr;
+  }
   .grid {grid-template-columns:repeat(2,1fr)}
   .stats {grid-template-columns:repeat(2,1fr)}
 }
@@ -182,6 +240,11 @@ td b {font-size:18px}
 
 <h1>BINANCE FUTURES MOMENTUM SCANNER</h1>
 <p>Binance USDⓈ-M USDT perpetual futures. Scanner only — it does not place trades.</p>
+
+<!-- COLLAPSIBLE FILTERS -->
+<details class="filters-panel">
+<summary>Filters — click to expand</summary>
+<div class="filters-content">
 
 <section class="panel">
 <h2>Market settings</h2>
@@ -292,6 +355,30 @@ The minimum absolute OI change is an additional optional filter.
 </p>
 </section>
 
+<section class="panel">
+<h2>MACD crossover settings</h2>
+<p>Detect DIF crossing DEA on a completed candle. This runs independently from the Bullish/Bearish momentum filters.</p>
+<div class="field">
+  <label>Crossover timeframe</label>
+  <select id="crossTf">
+    <option value="1m">1 minute</option>
+    <option value="5m" selected>5 minutes</option>
+    <option value="15m">15 minutes</option>
+    <option value="30m">30 minutes</option>
+    <option value="1h">1 hour</option>
+    <option value="2h">2 hours</option>
+    <option value="4h">4 hours</option>
+    <option value="6h">6 hours</option>
+    <option value="12h">12 hours</option>
+    <option value="1d">24 hours</option>
+  </select>
+</div>
+</section>
+
+</div>
+</details>
+
+<!-- SCANNER CONTROLS -->
 <div class="actions">
   <button id="start">Start scanning</button>
   <button id="once" class="secondary">Scan once</button>
@@ -310,93 +397,73 @@ The minimum absolute OI change is an additional optional filter.
   <div class="stat"><small>Request errors</small><strong id="errorCount">0</strong></div>
 </div>
 
-<div class="tabs">
-  <button class="tab active" data-tab="bullTab">Bullish</button>
-  <button class="tab" data-tab="bearTab">Bearish</button>
-  <button class="tab" data-tab="crossovers">MACD Crossovers</button>
+<!-- BULLISH AND BEARISH SIDE BY SIDE -->
+<div class="results-grid">
+
+  <section class="signal bull">
+    <h2>BULLISH <span id="bullTotal">0</span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Coin</th><th>Price</th></tr>
+        </thead>
+        <tbody id="bullRows">
+          <tr><td colspan="2">No scan yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="signal bear">
+    <h2>BEARISH <span id="bearTotal">0</span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Coin</th><th>Price</th></tr>
+        </thead>
+        <tbody id="bearRows">
+          <tr><td colspan="2">No scan yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
 </div>
 
-<section id="bullTab" class="tabcontent active">
-  <section class="signal bull">
-    <h2>BULLISH MOMENTUM <span id="bullTotal">0</span></h2>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>Pair</th><th>Price</th><th>Passed filters</th></tr></thead>
-        <tbody id="bullRows">
-          <tr><td colspan="3">No scan yet.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-</section>
-
-<section id="bearTab" class="tabcontent">
-  <section class="signal bear">
-    <h2>BEARISH MOMENTUM <span id="bearTotal">0</span></h2>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>Pair</th><th>Price</th><th>Passed filters</th></tr></thead>
-        <tbody id="bearRows">
-          <tr><td colspan="3">No scan yet.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-</section>
-
-<section id="crossovers" class="tabcontent">
-  <section class="panel">
-    <h2>MACD crossover settings</h2>
-    <p>
-      This tab works independently from the Bullish/Bearish momentum filters.
-      It detects DIF crossing DEA on a completed candle.
-    </p>
-    <div class="field">
-      <label>Crossover timeframe</label>
-      <select id="crossTf">
-        <option value="1m">1 minute</option>
-        <option value="5m" selected>5 minutes</option>
-        <option value="15m">15 minutes</option>
-        <option value="30m">30 minutes</option>
-        <option value="1h">1 hour</option>
-        <option value="2h">2 hours</option>
-        <option value="4h">4 hours</option>
-        <option value="6h">6 hours</option>
-        <option value="12h">12 hours</option>
-        <option value="1d">24 hours</option>
-      </select>
-    </div>
-    <p class="result-note">
-      A bullish crossover occurs when DIF moves from below DEA to above DEA.
-      A bearish crossover occurs when DIF moves from above DEA to below DEA.
-      The same crossover is not repeatedly added on every refresh.
-    </p>
-  </section>
+<!-- MACD CROSSOVERS SIDE BY SIDE -->
+<section class="panel">
+  <h2>MACD CROSSOVERS</h2>
 
   <div class="columns">
-    <section class="signal">
-      <h2 class="crossbull">BULLISH CROSSOVERS <span id="crossBullTotal">0</span></h2>
+
+    <section class="signal crossbull">
+      <h2>BULLISH CROSSOVER <span id="crossBullTotal">0</span></h2>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>Pair</th><th>Price</th><th>Timeframe</th></tr></thead>
+          <thead>
+            <tr><th>Coin</th><th>Price</th></tr>
+          </thead>
           <tbody id="crossBullRows">
-            <tr><td colspan="3">No crossovers detected yet.</td></tr>
+            <tr><td colspan="2">No crossovers detected yet.</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <section class="signal">
-      <h2 class="crossbear">BEARISH CROSSOVERS <span id="crossBearTotal">0</span></h2>
+    <section class="signal crossbear">
+      <h2>BEARISH CROSSOVER <span id="crossBearTotal">0</span></h2>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>Pair</th><th>Price</th><th>Timeframe</th></tr></thead>
+          <thead>
+            <tr><th>Coin</th><th>Price</th></tr>
+          </thead>
           <tbody id="crossBearRows">
-            <tr><td colspan="3">No crossovers detected yet.</td></tr>
+            <tr><td colspan="2">No crossovers detected yet.</td></tr>
           </tbody>
         </table>
       </div>
     </section>
+
   </div>
 </section>
 
@@ -730,6 +797,7 @@ async function getUniverse() {
   return pairs;
 }
 
+/* DISPLAY RESULTS */
 function render() {
   const query=$('search').value.trim().toUpperCase();
   const visible=results.filter(x=>!query||x.symbol.includes(query));
@@ -741,15 +809,14 @@ function render() {
     <tr>
       <td><b>${x.symbol}</b></td>
       <td>${fmt(x.price)}</td>
-      <td>${x.passText}</td>
     </tr>
   `;
 
   $('bullRows').innerHTML=bullish.map(row).join('') ||
-    '<tr><td colspan="3">No bullish matches.</td></tr>';
+    '<tr><td colspan="2">No bullish matches.</td></tr>';
 
   $('bearRows').innerHTML=bearish.map(row).join('') ||
-    '<tr><td colspan="3">No bearish matches.</td></tr>';
+    '<tr><td colspan="2">No bearish matches.</td></tr>';
 
   $('bullCount').textContent=$('bullTotal').textContent=bullish.length;
   $('bearCount').textContent=$('bearTotal').textContent=bearish.length;
@@ -762,15 +829,14 @@ function render() {
     <tr>
       <td><b>${x.symbol}</b></td>
       <td>${fmt(x.price)}</td>
-      <td>${x.tf}</td>
     </tr>
   `;
 
   $('crossBullRows').innerHTML=cb.map(crossRow).join('') ||
-    '<tr><td colspan="3">No bullish crossovers detected.</td></tr>';
+    '<tr><td colspan="2">No bullish crossovers detected.</td></tr>';
 
   $('crossBearRows').innerHTML=cs.map(crossRow).join('') ||
-    '<tr><td colspan="3">No bearish crossovers detected.</td></tr>';
+    '<tr><td colspan="2">No bearish crossovers detected.</td></tr>';
 
   $('crossBullTotal').textContent=cb.length;
   $('crossBearTotal').textContent=cs.length;
@@ -800,7 +866,6 @@ function checkCrossover(symbol,price,tf,closes,candleOpenTime) {
 
   if (!side) return;
 
-  // Identify each event using its completed candle timestamp.
   const key=symbol+'_'+tf+'_'+side+'_'+String(candleOpenTime);
 
   if (seenCrossovers.has(key)) return;
@@ -894,7 +959,6 @@ async function scan(autoRepeat=false) {
     rsiFilters.forEach(f=>needed.set(f.tf,f.interval));
     stFilters.forEach(f=>needed.set(f.tf,f.interval));
 
-    // Add the crossover timeframe independently.
     const crossTf=$('crossTf').value;
     const crossInterval=crossTf==='1d'?'1d':crossTf;
     needed.set(crossTf,crossInterval);
@@ -922,7 +986,6 @@ async function scan(autoRepeat=false) {
                 throw new Error('Insufficient candles');
               }
 
-              // Exclude the currently forming candle.
               const candles=raw.slice(0,-1);
               const closes=candles.map(c=>Number(c[4]));
 
@@ -943,7 +1006,6 @@ async function scan(autoRepeat=false) {
 
           if (stopped) return;
 
-          // Independent MACD crossover detection.
           const crossData=data[crossTf];
 
           if (crossData && crossData.closes.length>=50) {
@@ -956,7 +1018,6 @@ async function scan(autoRepeat=false) {
             );
           }
 
-          // OI is fetched only when the OI filter is enabled.
           let oiData=null;
 
           if (oiEnabled) {
@@ -970,7 +1031,6 @@ async function scan(autoRepeat=false) {
 
           let pass=true;
 
-          // All enabled RSI filters must pass.
           for (const f of rsiFilters) {
             const value=data[f.tf]?.rsi;
 
@@ -984,7 +1044,6 @@ async function scan(autoRepeat=false) {
           let displayPrice=NaN;
           const passed=[];
 
-          // All selected MACD timeframes must agree.
           if (pass) {
             for (const f of macdFilters) {
               const item=data[f.tf];
@@ -1027,7 +1086,6 @@ async function scan(autoRepeat=false) {
             }
           }
 
-          // Supertrend must agree with the MACD direction.
           if (pass && stFilters.length) {
             for (const f of stFilters) {
               const direction=data[f.tf]?.st;
@@ -1047,7 +1105,6 @@ async function scan(autoRepeat=false) {
             }
           }
 
-          // OI percentage direction and optional minimum absolute change.
           if (pass && oiEnabled) {
             if (!oiData) {
               pass=false;
@@ -1162,16 +1219,6 @@ function exportCSV() {
 
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-
-document.querySelectorAll('.tab').forEach(button=>{
-  button.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('.tabcontent').forEach(x=>x.classList.remove('active'));
-
-    button.classList.add('active');
-    $(button.dataset.tab).classList.add('active');
-  });
-});
 
 $('start').addEventListener('click',()=>{
   stopped=false;
