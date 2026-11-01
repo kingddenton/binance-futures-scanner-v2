@@ -28,7 +28,7 @@ button.secondary{background:transparent;color:var(--text);border:1px solid var(-
 button:disabled{opacity:.5}
 progress{width:100%;height:9px;accent-color:var(--gold)}
 #status{color:var(--muted);font-size:12px;white-space:pre-wrap}
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .stat{background:#10151b;border:1px solid var(--line);padding:9px;border-radius:7px}
 .stat small{display:block;color:var(--muted)}
 .stat strong{font-size:18px}
@@ -36,19 +36,18 @@ progress{width:100%;height:9px;accent-color:var(--gold)}
 .signal h2{display:flex;justify-content:space-between}
 .bull h2,.bulltxt{color:var(--green)}
 .bear h2,.beartxt{color:var(--red)}
-.neutral h2,.neutraltxt{color:var(--gold)}
 .tablewrap{overflow:auto;max-height:600px}
 table{border-collapse:collapse;width:100%;min-width:850px;font-size:12px}
 th,td{padding:7px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 th{position:sticky;top:0;background:var(--panel);color:var(--muted)}
-@media(max-width:850px){.columns{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:550px){.grid{grid-template-columns:1fr}.checks{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:850px){.columns{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:550px){.grid{grid-template-columns:1fr}.checks{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 <main>
 <h1>BINANCE FUTURES MOMENTUM SCANNER</h1>
-<p>USDⓈ-M USDT perpetuals · MACD 12/26/9 · RSI(14) · Supertrend ATR(10) × 3 · Scanner only.</p>
+<p>USDⓈ-M USDT perpetuals · Independently selectable MACD, RSI and Supertrend timeframes · Scanner only.</p>
 
 <section class="panel">
 <h2>Market settings</h2>
@@ -69,7 +68,7 @@ th{position:sticky;top:0;background:var(--panel);color:var(--muted)}
 
 <section class="panel">
 <h2>MACD timeframes</h2>
-<p class="muted">All selected initially. 24h uses Binance 1-day candles. Results use the last completed candle.</p>
+<p class="muted">Select MACD timeframes independently. Each selected timeframe produces a result row. 24h uses Binance 1-day candles; calculations use completed candles.</p>
 <div id="macdTfs" class="checks"></div>
 <div class="grid" style="margin-top:10px">
 <div class="field"><label>Near-zero histogram tolerance (% of price)</label><input id="zeroTolerance" type="number" min="0" step="0.0001" value="0.001"></div>
@@ -80,7 +79,7 @@ th{position:sticky;top:0;background:var(--panel);color:var(--muted)}
 
 <section class="panel">
 <h2>Optional RSI filters</h2>
-<p class="muted">Every enabled RSI filter must pass. Set minimum 0 and maximum 100 to disable practical restrictions. RSI is also displayed without enabling a filter.</p>
+<p class="muted">Select RSI timeframes independently of MACD. Only checked RSI timeframes filter results; every checked RSI condition must pass. RSI values are calculated and displayed for each selected MACD timeframe.</p>
 <div class="grid">
 <div class="field"><label>RSI period</label><input id="rsiPeriod" type="number" min="2" max="100" value="14"></div>
 </div>
@@ -89,7 +88,7 @@ th{position:sticky;top:0;background:var(--panel);color:var(--muted)}
 
 <section class="panel">
 <h2>Optional Supertrend filters</h2>
-<p class="muted">ATR(10), multiplier 3. Supertrend is displayed for every selected MACD timeframe, even when its filter is off. All enabled filters must match their selected direction.</p>
+<p class="muted">Select Supertrend timeframes independently of MACD and RSI. Only checked Supertrend timeframes filter results; every checked direction must match. Supertrend is also displayed for each selected MACD timeframe.</p>
 <div id="stFilters" class="grid"></div>
 </section>
 
@@ -107,7 +106,6 @@ th{position:sticky;top:0;background:var(--panel);color:var(--muted)}
 <div class="stat"><small>Pairs selected</small><strong id="pairCount">0</strong></div>
 <div class="stat"><small>Bullish rows</small><strong id="bullCount">0</strong></div>
 <div class="stat"><small>Bearish rows</small><strong id="bearCount">0</strong></div>
-<div class="stat"><small>Neutral rows</small><strong id="neutralCount">0</strong></div>
 <div class="stat"><small>Request errors</small><strong id="errorCount">0</strong></div>
 </div>
 
@@ -128,14 +126,6 @@ th{position:sticky;top:0;background:var(--panel);color:var(--muted)}
 </table></div>
 </section>
 </div>
-
-<section class="signal neutral">
-<h2>NEUTRAL / TRANSITION <span id="neutralTotal">0</span></h2>
-<div class="tablewrap"><table>
-<thead><tr><th>Pair</th><th>TF</th><th>Price</th><th>DIF</th><th>DEA</th><th>Histogram</th><th>DIF/DEA zone</th><th>RSI</th><th>Supertrend</th></tr></thead>
-<tbody id="neutralRows"><tr><td colspan="9">No scan yet.</td></tr></tbody>
-</table></div>
-</section>
 </main>
 
 <script>
@@ -348,41 +338,26 @@ function render(){
  const query=$('search').value.trim().toUpperCase();
  const minGreen=Number($('greenStreak').value)||0;
  const minRed=Number($('redStreak').value)||0;
-
  const visible=results.filter(item=>
   (!query||item.symbol.includes(query))&&
   (item.side!=='bull'||item.streak>=minGreen)&&
   (item.side!=='bear'||item.streak>=minRed)
  );
-
  const bullish=visible.filter(item=>item.side==='bull');
  const bearish=visible.filter(item=>item.side==='bear');
- const neutral=visible.filter(item=>item.side==='neutral');
-
- const row=(item,showStreak=true)=>`
-  <tr>
-   <td><b>${item.symbol}</b></td>
-   <td>${item.tf}</td>
-   <td>${fmt(item.price)}</td>
-   <td>${fmt(item.dif)}</td>
-   <td>${fmt(item.dea)}</td>
-   <td class="${item.histogram>0?'bulltxt':item.histogram<0?'beartxt':'neutraltxt'}">${fmt(item.histogram)}</td>
-   <td>${item.zone}</td>
-   <td>${fmt(item.rsi)}</td>
-   <td>${item.st}</td>
-   ${showStreak?`<td>${item.streak}</td>`:''}
-  </tr>`;
-
- $('bullRows').innerHTML=bullish.map(item=>row(item,true)).join('')||'<tr><td colspan="10">No bullish matches.</td></tr>';
- $('bearRows').innerHTML=bearish.map(item=>row(item,true)).join('')||'<tr><td colspan="10">No bearish matches.</td></tr>';
- $('neutralRows').innerHTML=neutral.map(item=>row(item,false)).join('')||'<tr><td colspan="9">No neutral matches.</td></tr>';
-
+ const row=item=>`<tr>
+  <td><b>${item.symbol}</b></td><td>${item.tf}</td><td>${fmt(item.price)}</td>
+  <td>${fmt(item.dif)}</td><td>${fmt(item.dea)}</td>
+  <td class="${item.histogram>0?'bulltxt':'beartxt'}">${fmt(item.histogram)}</td>
+  <td>${item.zone}</td><td>${fmt(item.rsi)}</td><td>${item.st}</td><td>${item.streak}</td>
+ </tr>`;
+ $('bullRows').innerHTML=bullish.map(row).join('')||'<tr><td colspan="10">No bullish matches.</td></tr>';
+ $('bearRows').innerHTML=bearish.map(row).join('')||'<tr><td colspan="10">No bearish matches.</td></tr>';
  $('bullCount').textContent=$('bullTotal').textContent=bullish.length;
  $('bearCount').textContent=$('bearTotal').textContent=bearish.length;
- $('neutralCount').textContent=$('neutralTotal').textContent=neutral.length;
 }
 
-async function scan(){
+async function scan(autoRepeat=false){
  if(running)return;
 
  const macdTimeframes=selectedMacd();
@@ -453,16 +428,10 @@ async function scan(){
        price:closes[closes.length-1]
       };
 
-      /* Calculate RSI for every selected MACD timeframe for display. */
-      if(macdTimeframes.some(item=>item[0]===tf)||rsiFilters.some(filter=>filter.tf===tf)){
-       const period=Math.max(2,Math.min(100,Number($('rsiPeriod').value)||14));
-       data[tf].rsi=calcRSI(closes,period);
-      }
-
-      /* Calculate Supertrend for every selected MACD timeframe for display. */
-      if(macdTimeframes.some(item=>item[0]===tf)||stFilters.some(filter=>filter.tf===tf)){
-       data[tf].st=supertrend(candles);
-      }
+      /* Calculate both indicators for every requested timeframe. */
+      const period=Math.max(2,Math.min(100,Number($('rsiPeriod').value)||14));
+      data[tf].rsi=calcRSI(closes,period);
+      data[tf].st=supertrend(candles);
      }catch(error){
       errors++;
       console.warn('Data request failed:',symbol,tf,error);
@@ -505,11 +474,11 @@ async function scan(){
       if(![dif,dea,histogram,price].every(Number.isFinite))continue;
 
       const classification=classify(dif,dea,histogram,price);
+      if(classification.side==='neutral')continue;
+
       const count=classification.side==='bull'
        ?streak(indicators.histogram.slice(0,last+1),true)
-       :classification.side==='bear'
-        ?streak(indicators.histogram.slice(0,last+1),false)
-        :0;
+       :streak(indicators.histogram.slice(0,last+1),false);
 
       results.push({
        symbol,
@@ -555,9 +524,9 @@ async function scan(){
   $('start').disabled=false;
   $('once').disabled=false;
 
-  if(!stopped&&Number($('refresh').value)>0){
+  if(autoRepeat&&!stopped&&Number($('refresh').value)>0){
    clearTimeout(timer);
-   timer=setTimeout(scan,Number($('refresh').value)*1000);
+   timer=setTimeout(()=>scan(true),Number($('refresh').value)*1000);
   }
  }
 }
@@ -569,7 +538,7 @@ function exportCSV(){
  }
 
  const headers=['Pair','Timeframe','Price','DIF','DEA','Histogram','Momentum','DIF/DEA zone','RSI','Supertrend','Histogram streak'];
- const escapeCSV=value=>'"'+String(value??'').replaceAll('"','""')+'"';
+ const escapeCSV=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
 
  const csv=[headers,...results.map(item=>[
   item.symbol,item.tf,item.price,item.dif,item.dea,item.histogram,
@@ -585,8 +554,8 @@ function exportCSV(){
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-$('start').addEventListener('click',scan);
-$('once').addEventListener('click',scan);
+$('start').addEventListener('click',()=>scan(true));
+$('once').addEventListener('click',()=>scan(false));
 
 $('stop').addEventListener('click',()=>{
  stopped=true;
@@ -608,7 +577,7 @@ $('redStreak').addEventListener('input',render);
 $('refresh').addEventListener('change',()=>{
  clearTimeout(timer);
  if(!running&&Number($('refresh').value)>0){
-  timer=setTimeout(scan,Number($('refresh').value)*1000);
+  timer=setTimeout(()=>scan(true),Number($('refresh').value)*1000);
  }
 });
 
