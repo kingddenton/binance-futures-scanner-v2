@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -310,36 +311,37 @@ The minimum absolute OI change is an additional optional filter.
 </div>
 
 <div class="tabs">
-  <button class="tab active" data-tab="momentum">Bullish / Bearish</button>
+  <button class="tab active" data-tab="bullTab">Bullish</button>
+  <button class="tab" data-tab="bearTab">Bearish</button>
   <button class="tab" data-tab="crossovers">MACD Crossovers</button>
 </div>
 
-<section id="momentum" class="tabcontent active">
-  <div class="columns">
-    <section class="signal bull">
-      <h2>BULLISH MOMENTUM <span id="bullTotal">0</span></h2>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Pair</th><th>Price</th><th>Passed filters</th></tr></thead>
-          <tbody id="bullRows">
-            <tr><td colspan="3">No scan yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+<section id="bullTab" class="tabcontent active">
+  <section class="signal bull">
+    <h2>BULLISH MOMENTUM <span id="bullTotal">0</span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Pair</th><th>Price</th><th>Passed filters</th></tr></thead>
+        <tbody id="bullRows">
+          <tr><td colspan="3">No scan yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
 
-    <section class="signal bear">
-      <h2>BEARISH MOMENTUM <span id="bearTotal">0</span></h2>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Pair</th><th>Price</th><th>Passed filters</th></tr></thead>
-          <tbody id="bearRows">
-            <tr><td colspan="3">No scan yet.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
+<section id="bearTab" class="tabcontent">
+  <section class="signal bear">
+    <h2>BEARISH MOMENTUM <span id="bearTotal">0</span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Pair</th><th>Price</th><th>Passed filters</th></tr></thead>
+        <tbody id="bearRows">
+          <tr><td colspan="3">No scan yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </section>
 
 <section id="crossovers" class="tabcontent">
@@ -774,7 +776,7 @@ function render() {
   $('crossBearTotal').textContent=cs.length;
 }
 
-function checkCrossover(symbol,price,tf,closes) {
+function checkCrossover(symbol,price,tf,closes,candleOpenTime) {
   const macd=calculateMACD(closes);
   const last=closes.length-1;
   const previous=last-1;
@@ -798,8 +800,8 @@ function checkCrossover(symbol,price,tf,closes) {
 
   if (!side) return;
 
-  // Use the completed candle's opening timestamp as the unique event key.
-  const key=symbol+'_'+tf+'_'+side+'_'+String(last);
+  // Identify each event using its completed candle timestamp.
+  const key=symbol+'_'+tf+'_'+side+'_'+String(candleOpenTime);
 
   if (seenCrossovers.has(key)) return;
 
@@ -812,7 +814,6 @@ function checkCrossover(symbol,price,tf,closes) {
     side
   });
 
-  // Keep the crossover list manageable.
   if (crossovers.length>1000) crossovers.length=1000;
 }
 
@@ -950,7 +951,8 @@ async function scan(autoRepeat=false) {
               symbol,
               crossData.price,
               crossTf,
-              crossData.closes
+              crossData.closes,
+              crossData.candles[crossData.candles.length-1][0]
             );
           }
 
