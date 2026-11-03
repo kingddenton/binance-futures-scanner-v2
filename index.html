@@ -337,21 +337,22 @@ Positive OI change qualifies for Bullish; negative OI change qualifies for Beari
   </div>
 
   <div class="field">
-    <label>Minimum absolute OI change (USDT)</label>
+    <label>Minimum 5-minute OI change (USDT)</label>
     <input id="oiMinimum" type="number" min="0" step="1000" value="50000">
   </div>
 </div>
 
 <div class="check" style="margin-top:10px">
-  <input type="checkbox" id="oiMinimumEnabled">
+  <input type="checkbox" id="oiMinimumEnabled" checked>
   <label for="oiMinimumEnabled">
-    Enforce minimum absolute OI change
+    Enforce minimum 5-minute OI change
   </label>
 </div>
 <p class="result-note">
-Example: 5-minute OI at +2% or more can qualify as bullish.
-5-minute OI at -2% or less can qualify as bearish.
-The minimum absolute OI change is an additional optional filter.
+The OI percentage threshold uses the selected OI timeframe above.
+The minimum OI amount always uses the 5-minute OI change in USDT.
+Bullish requires positive 5-minute OI change; bearish requires negative 5-minute OI change.
+The minimum 5-minute OI threshold is adjustable and enabled by default when OI filtering is on.
 </p>
 </section>
 
@@ -1019,10 +1020,14 @@ async function scan(autoRepeat=false) {
           }
 
           let oiData=null;
+          let oiMinimumData=null;
 
           if (oiEnabled) {
             try {
               oiData=await getOIChange(symbol,oiTf);
+              oiMinimumData=oiTf==='5m'
+                ? oiData
+                : await getOIChange(symbol,'5m');
             } catch(error) {
               errors++;
               console.warn(symbol,'OI',error);
@@ -1118,11 +1123,15 @@ async function scan(autoRepeat=false) {
               }
 
               if (oiMinimumEnabled &&
-                  Math.abs(oiData.change)<oiMinimum) {
+                  (!oiMinimumData ||
+                   Math.abs(oiMinimumData.change)<oiMinimum)) {
                 pass=false;
               }
 
-              if (pass) passed.push('OI '+oiTf);
+              if (pass) {
+                passed.push('OI '+oiTf);
+                if (oiMinimumEnabled) passed.push('Minimum OI 5m');
+              }
             }
           }
 
