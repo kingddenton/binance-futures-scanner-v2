@@ -1122,10 +1122,21 @@ async function scan(autoRepeat=false) {
                 pass=false;
               }
 
-              if (oiMinimumEnabled &&
-                  (!oiMinimumData ||
-                   Math.abs(oiMinimumData.change)<oiMinimum)) {
-                pass=false;
+              if (oiMinimumEnabled) {
+                if (!oiMinimumData ||
+                    Math.abs(oiMinimumData.change)<oiMinimum) {
+                  pass=false;
+                }
+
+                if (macdSide==='bull' &&
+                    oiMinimumData && oiMinimumData.change<=0) {
+                  pass=false;
+                }
+
+                if (macdSide==='bear' &&
+                    oiMinimumData && oiMinimumData.change>=0) {
+                  pass=false;
+                }
               }
 
               if (pass) {
