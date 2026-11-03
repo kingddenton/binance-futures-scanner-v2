@@ -210,12 +210,9 @@ td b {font-size:18px}
   text-align:right;
 }
 .result-note {font-size:14px;color:var(--muted)}
-.oi-options {
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:10px;
-  margin-top:10px;
-}
+.oi-options,.filter-options {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.oi-window {border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:9px}
+.oi-window h3 {font-size:15px;margin:0 0 8px;color:var(--gold)}
 .hidden {display:none!important}
 
 @media(max-width:850px) {
@@ -226,7 +223,7 @@ td b {font-size:18px}
   .stats {grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:550px) {
-  .grid,.oi-options {grid-template-columns:1fr}
+  .grid,.oi-options,.filter-options {grid-template-columns:1fr}
   .tfgrid {grid-template-columns:repeat(2,1fr)}
   main {padding:8px}
   .panel,.signal {padding:11px}
@@ -310,50 +307,32 @@ Bearish requires both below zero. Zero or disagreement excludes the coin.
 <section class="panel">
 <h2>Optional Open Interest filter</h2>
 <p>
-The same OI settings apply to Bullish and Bearish results.
-Positive OI change qualifies for Bullish; negative OI change qualifies for Bearish.
+Each enabled OI window is calculated from Binance 5-minute OI history.
+5m = one interval, 10m = two intervals, 15m = three intervals. Dollar and percentage thresholds are independently adjustable.
+Bullish requires positive OI change; Bearish requires negative OI change.
 </p>
-
-<div class="check">
-  <input type="checkbox" id="oiEnabled">
-  <label for="oiEnabled">Enable OI change filter</label>
+<div class="check"><input type="checkbox" id="oiEnabled"><label for="oiEnabled">Enable OI change filter</label></div>
+<div class="field" style="margin-top:10px"><label>Combine enabled OI windows</label><select id="oiLogic"><option value="AND" selected>AND — all enabled windows must pass</option><option value="OR">OR — any enabled window may pass</option></select></div>
+<div class="oi-window">
+ <div class="check"><input type="checkbox" id="oi5Enabled" checked><label for="oi5Enabled">Enable 5-minute OI</label></div>
+ <div class="filter-options"><div class="field"><label>Minimum change (USDT)</label><input id="oi5Usd" type="number" min="0" step="1000" value="50000"></div><div class="field"><label>Minimum change (%)</label><input id="oi5Pct" type="number" min="0" step="0.1" value="0.5"></div></div>
 </div>
-
-<div class="oi-options">
-  <div class="field">
-    <label>OI timeframe</label>
-    <select id="oiTf">
-      <option value="5m" selected>5 minutes</option>
-      <option value="15m">15 minutes</option>
-      <option value="30m">30 minutes</option>
-      <option value="1h">1 hour</option>
-      <option value="4h">4 hours</option>
-    </select>
-  </div>
-
-  <div class="field">
-    <label>Minimum OI change (%)</label>
-    <input id="oiPercent" type="number" min="0" step="0.1" value="2">
-  </div>
-
-  <div class="field">
-    <label>Minimum 5-minute OI change (USDT)</label>
-    <input id="oiMinimum" type="number" min="0" step="1000" value="50000">
-  </div>
+<div class="oi-window">
+ <div class="check"><input type="checkbox" id="oi10Enabled"><label for="oi10Enabled">Enable 10-minute OI</label></div>
+ <div class="filter-options"><div class="field"><label>Minimum change (USDT)</label><input id="oi10Usd" type="number" min="0" step="1000" value="75000"></div><div class="field"><label>Minimum change (%)</label><input id="oi10Pct" type="number" min="0" step="0.1" value="0.75"></div></div>
 </div>
-
-<div class="check" style="margin-top:10px">
-  <input type="checkbox" id="oiMinimumEnabled" checked>
-  <label for="oiMinimumEnabled">
-    Enforce minimum 5-minute OI change
-  </label>
+<div class="oi-window">
+ <div class="check"><input type="checkbox" id="oi15Enabled"><label for="oi15Enabled">Enable 15-minute OI</label></div>
+ <div class="filter-options"><div class="field"><label>Minimum change (USDT)</label><input id="oi15Usd" type="number" min="0" step="1000" value="100000"></div><div class="field"><label>Minimum change (%)</label><input id="oi15Pct" type="number" min="0" step="0.1" value="1"></div></div>
 </div>
-<p class="result-note">
-The OI percentage threshold uses the selected OI timeframe above.
-The minimum OI amount always uses the 5-minute OI change in USDT.
-Bullish requires positive 5-minute OI change; bearish requires negative 5-minute OI change.
-The minimum 5-minute OI threshold is adjustable and enabled by default when OI filtering is on.
-</p>
+<p class="result-note">10-minute OI is derived from two 5-minute intervals because Binance has no native 10-minute OI period. All enabled thresholds are checked against the direction of the MACD signal.</p>
+</section>
+<section class="panel">
+<h2>Optional Volume Change filters</h2>
+<p>Compare the latest two completed Binance candles using USDT quote volume. Volume expansion confirms participation; it does not determine direction.</p>
+<div class="oi-window"><div class="check"><input type="checkbox" id="vol1Enabled"><label for="vol1Enabled">Enable 1-hour volume change</label></div><div class="field" style="margin-top:9px"><label>Minimum 1-hour volume change (%)</label><input id="vol1Min" type="number" min="0" step="0.1" value="2"></div></div>
+<div class="oi-window"><div class="check"><input type="checkbox" id="vol4Enabled"><label for="vol4Enabled">Enable 4-hour volume change</label></div><div class="field" style="margin-top:9px"><label>Minimum 4-hour volume change (%)</label><input id="vol4Min" type="number" min="0" step="0.1" value="2"></div></div>
+<p class="result-note">If both volume filters are enabled, both must pass. This is candle-to-candle volume change, not a long-term average.</p>
 </section>
 
 <section class="panel">
@@ -494,7 +473,9 @@ let crossovers = [];
 let seenCrossovers = new Set();
 let errors = 0;
 let activeRequests = 0;
-const MAX_REQUESTS = 6;
+const MAX_REQUESTS = 4;
+let lastRequestStarted=0;
+const REQUEST_SPACING_MS=120;
 
 function requestSlot() {
   return new Promise(resolve => {
@@ -505,7 +486,9 @@ function requestSlot() {
       }
       if (activeRequests < MAX_REQUESTS) {
         activeRequests++;
-        resolve(true);
+        const delay=Math.max(0,REQUEST_SPACING_MS-(Date.now()-lastRequestStarted));
+        lastRequestStarted=Date.now()+delay;
+        setTimeout(()=>resolve(true),delay);
       } else {
         setTimeout(check,50);
       }
@@ -737,36 +720,21 @@ function selectedST() {
     .map(([tf,interval])=>({tf,interval}));
 }
 
-function oiInterval(tf) {
-  return tf;
+async function getOIWindows(symbol) {
+  const data=await get(`/futures/data/openInterestHist?symbol=${symbol}&period=5m&limit=4`);
+  if(!Array.isArray(data)||data.length<4) throw new Error('Insufficient 5m OI history');
+  const rows=data.slice(-4), times=rows.map(x=>Number(x.timestamp));
+  if(times.some((t,i)=>!Number.isFinite(t)||(i>0&&t-times[i-1]!==300000))) throw new Error('Stale or misaligned 5m OI history');
+  const v=rows.map(x=>Number(x.sumOpenInterestValue));
+  if(v.some(x=>!Number.isFinite(x)||x<=0)) throw new Error('Invalid OI values');
+  const make=n=>({change:v[3]-v[3-n],percent:(v[3]-v[3-n])/v[3-n]*100,current:v[3],previous:v[3-n]});
+  return {5:make(1),10:make(2),15:make(3)};
 }
-
-async function getOIChange(symbol,tf) {
-  const period=oiInterval(tf);
-  const data=await get(
-    `/futures/data/openInterestHist?symbol=${symbol}&period=${period}&limit=2`
-  );
-
-  if (!Array.isArray(data) || data.length<2) {
-    throw new Error('Insufficient OI history');
-  }
-
-  const previous=Number(data[data.length-2].sumOpenInterestValue);
-  const current=Number(data[data.length-1].sumOpenInterestValue);
-
-  if (!Number.isFinite(previous) || !Number.isFinite(current) || previous<=0) {
-    throw new Error('Invalid OI data');
-  }
-
-  const change=current-previous;
-  const percent=(change/previous)*100;
-
-  return {
-    change,
-    percent,
-    current,
-    previous
-  };
+function getVolumeChange(candles) {
+  if(!Array.isArray(candles)||candles.length<2) throw new Error('Insufficient volume candles');
+  const previous=Number(candles[candles.length-2][7]),current=Number(candles[candles.length-1][7]);
+  if(!Number.isFinite(previous)||!Number.isFinite(current)||previous<=0) throw new Error('Invalid quote volume');
+  return {previous,current,percent:(current-previous)/previous*100};
 }
 
 async function getUniverse() {
@@ -913,21 +881,18 @@ async function scan(autoRepeat=false) {
   }
 
   const oiEnabled=$('oiEnabled').checked;
-  const oiMinimumEnabled=$('oiMinimumEnabled').checked;
-  const oiTf=$('oiTf').value;
-  const oiPercent=Math.abs(Number($('oiPercent').value));
-  const oiMinimum=Number($('oiMinimum').value);
-
-  if (oiEnabled && (!Number.isFinite(oiPercent)||oiPercent<=0)) {
-    $('status').textContent='Enter a valid OI percentage threshold.';
-    return;
+  const oiWindows=[5,10,15].filter(n=>$('oi'+n+'Enabled').checked);
+  const oiLogic=$('oiLogic').value;
+  const volumeFilters=[
+    {tf:'1h',enabled:$('vol1Enabled').checked,min:Number($('vol1Min').value)},
+    {tf:'4h',enabled:$('vol4Enabled').checked,min:Number($('vol4Min').value)}
+  ].filter(x=>x.enabled);
+  if(oiEnabled&&!oiWindows.length){$('status').textContent='Enable at least one OI window.';return;}
+  if(oiEnabled) for(const n of oiWindows) {
+    const usd=Number($('oi'+n+'Usd').value),pct=Number($('oi'+n+'Pct').value);
+    if(!Number.isFinite(usd)||usd<0||!Number.isFinite(pct)||pct<0){$('status').textContent='Check OI '+n+'m thresholds.';return;}
   }
-
-  if (oiEnabled && oiMinimumEnabled &&
-      (!Number.isFinite(oiMinimum)||oiMinimum<0)) {
-    $('status').textContent='Enter a valid minimum OI change value.';
-    return;
-  }
+  for(const f of volumeFilters) if(!Number.isFinite(f.min)||f.min<0){$('status').textContent='Check '+f.tf+' volume threshold.';return;}
 
   running=true;
   stopped=false;
@@ -959,6 +924,7 @@ async function scan(autoRepeat=false) {
     macdFilters.forEach(f=>needed.set(f.tf,f.interval));
     rsiFilters.forEach(f=>needed.set(f.tf,f.interval));
     stFilters.forEach(f=>needed.set(f.tf,f.interval));
+    volumeFilters.forEach(f=>needed.set(f.tf,f.tf));
 
     const crossTf=$('crossTf').value;
     const crossInterval=crossTf==='1d'?'1d':crossTf;
@@ -968,7 +934,7 @@ async function scan(autoRepeat=false) {
     let completed=0;
 
     const workers=Array.from(
-      {length:Math.min(4,pairs.length)},
+      {length:Math.min(3,pairs.length)},
       async()=>{
         while (!stopped) {
           const index=next++;
@@ -1019,19 +985,15 @@ async function scan(autoRepeat=false) {
             );
           }
 
-          let oiData=null;
-          let oiMinimumData=null;
-
-          if (oiEnabled) {
-            try {
-              oiData=await getOIChange(symbol,oiTf);
-              oiMinimumData=oiTf==='5m'
-                ? oiData
-                : await getOIChange(symbol,'5m');
-            } catch(error) {
-              errors++;
-              console.warn(symbol,'OI',error);
-            }
+          let oiData=null,oiError=false;
+          if(oiEnabled) {
+            try { oiData=await getOIWindows(symbol); }
+            catch(error){oiError=true;errors++;console.warn(symbol,'OI',error);}
+          }
+          const volumeData={};
+          for(const f of volumeFilters) {
+            try {if(!data[f.tf]) throw new Error('Missing '+f.tf+' candles');volumeData[f.tf]=getVolumeChange(data[f.tf].candles);}
+            catch(error){errors++;console.warn(symbol,f.tf+' volume',error);}
           }
 
           let pass=true;
@@ -1110,40 +1072,22 @@ async function scan(autoRepeat=false) {
             }
           }
 
-          if (pass && oiEnabled) {
-            if (!oiData) {
-              pass=false;
-            } else {
-              if (macdSide==='bull' && oiData.percent<oiPercent) {
-                pass=false;
-              }
-
-              if (macdSide==='bear' && oiData.percent>(-oiPercent)) {
-                pass=false;
-              }
-
-              if (oiMinimumEnabled) {
-                if (!oiMinimumData ||
-                    Math.abs(oiMinimumData.change)<oiMinimum) {
-                  pass=false;
-                }
-
-                if (macdSide==='bull' &&
-                    oiMinimumData && oiMinimumData.change<=0) {
-                  pass=false;
-                }
-
-                if (macdSide==='bear' &&
-                    oiMinimumData && oiMinimumData.change>=0) {
-                  pass=false;
-                }
-              }
-
-              if (pass) {
-                passed.push('OI '+oiTf);
-                if (oiMinimumEnabled) passed.push('Minimum OI 5m');
-              }
+          if(pass&&oiEnabled) {
+            if(oiError||!oiData) pass=false;
+            else {
+              const checks=oiWindows.map(n=>{
+                const x=oiData[n],u=Number($('oi'+n+'Usd').value),p=Number($('oi'+n+'Pct').value);
+                return (macdSide==='bull'?x.change>0:x.change<0)&&Math.abs(x.change)>=u&&Math.abs(x.percent)>=p;
+              });
+              const ok=oiLogic==='AND'?checks.every(Boolean):checks.some(Boolean);
+              if(!ok) pass=false;
+              if(pass) oiWindows.forEach(n=>passed.push('OI '+n+'m'));
             }
+          }
+          if(pass) for(const f of volumeFilters) {
+            const x=volumeData[f.tf];
+            if(!x||x.percent<f.min){pass=false;break;}
+            passed.push('Volume '+f.tf);
           }
 
           if (pass&&macdSide) {
